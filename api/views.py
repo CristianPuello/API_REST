@@ -1,4 +1,5 @@
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 import requests
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,6 +9,7 @@ from .serializers import JokeSerializer
 
 class JokeList(APIView):
     serializer_class = JokeSerializer
+    max_page_size = 5 
 
     def get(self, request):
         nombre = request.query_params.get('nombre')
@@ -18,7 +20,13 @@ class JokeList(APIView):
             return Response({'joke': joke}, status=status.HTTP_200_OK)
         else:
             joke = Jokes.objects.all()
-            serializer = JokeSerializer(joke, many=True)
+            if not request.query_params:
+                serializer = JokeSerializer(joke, many=True)
+                return Response({'joke': serializer.data}, status=status.HTTP_200_OK)
+            paginator = PageNumberPagination()
+            paginator.page_size = self.max_page_size
+            result_page = paginator.paginate_queryset(joke, request)
+            serializer = JokeSerializer(result_page, many=True)
             return Response({'joke':serializer.data}, status=status.HTTP_200_OK)
             
     def post(self, request):
